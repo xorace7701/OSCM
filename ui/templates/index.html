@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSCM v1.0 // RECLAMATION CONTROL PANEL</title>
+    <style id="theme-variable-block">
+        /* INITIAL BOOTSTRAP THEME CONFIGURATION: SCI-FI RETRO GREEN PHOSPHOR */
+        :root {
+            --neon-green: #39ff14;
+            --dark-green: #003b00;
+            --terminal-bg: #050b05;
+            --panel-bg: #0a140a;
+            --border-glow: 0 0 10px rgba(57, 255, 20, 0.4);
+            --text-glow: 0 0 5px rgba(57, 255, 20, 0.7);
+        }
+    </style>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        body {
+            background-color: var(--terminal-bg);
+            color: var(--neon-green);
+            padding: 20px;
+            overflow-x: hidden;
+            font-size: 14px;
+            line-height: 1.5;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        body::before {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 9999;
+            opacity: 0.4;
+            pointer-events: none;
+            background-size: 100% 4px, 6px 100%;
+        }
+
+        header {
+            border: 2px solid var(--neon-green);
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: var(--border-glow);
+            background-color: var(--panel-bg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .header-title {
+            font-weight: bold;
+            font-size: 1.8em;
+            text-transform: uppercase;
+            text-shadow: var(--text-glow);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 20px;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--neon-green);
+            padding: 15px;
+            box-shadow: var(--border-glow);
+            transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .col-4 { grid-column: span 4; }
+        .col-6 { grid-column: span 6; }
+        .col-8 { grid-column: span 8; }
+        .col-12 { grid-column: span 12; }
+
+        .panel-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            border-bottom: 1px dashed var(--neon-green);
+            padding-bottom: 5px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .panel-title::after {
+            content: "[ONLINE]";
+            font-size: 0.8em;
+        }
+
+        .spec-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .spec-label { color: var(--neon-green); opacity: 0.7; }
+        .spec-value { font-weight: bold; }
+
+        .status-pill {
+            background-color: var(--dark-green);
+            border: 1px solid var(--neon-green);
+            padding: 1px 6px;
+            font-size: 0.9em;
+            color: var(--neon-green);
+        }
+
+        .terminal-input {
+            width: 100%;
+            background-color: var(--terminal-bg);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 8px;
+            font-family: inherit;
+            margin-bottom: 10px;
+            transition: border-color 0.25s ease, color 0.25s ease;
+        }
+
+        .terminal-input:focus {
+            outline: none;
+            box-shadow: var(--border-glow);
+        }
+
+        .btn {
+            background-color: var(--neon-green);
+            color: var(--terminal-bg);
+            border: none;
+            padding: 8px 15px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-family: inherit;
+            width: 100%;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--dark-green);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            box-shadow: var(--border-glow);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid var(--neon-green);
+            border-bottom-color: rgba(57, 255, 20, 0.2);
+        }
+
+        th {
+            text-transform: uppercase;
+            background-color: var(--dark-green);
+            color: var(--neon-green);
+        }
+
+        tr:hover td {
+            background-color: var(--dark-green);
+            opacity: 0.9;
+        }
+
+        .console-box {
+            background-color: var(--terminal-bg);
+            border: 1px solid var(--neon-green);
+            height: 160px;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            color: var(--neon-green);
+            opacity: 0.9;
+        }
+
+        .log-entry { margin-bottom: 4px; }
+        .log-time { opacity: 0.5; margin-right: 8px;}
+
+        .theme-control-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .theme-selector-label {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .theme-dropdown {
+            background-color: var(--terminal-bg);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 5px 10px;
+            font-family: inherit;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        @media (max-width: 900px) {
+            header { flex-direction: column; align-items: flex-start; gap: 10px; }
+            .col-4, .col-6, .col-8, .col-12 { grid-column: span 12; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <div class="header-title">OSCM // OPEN SYSTEMS COMMUNICATIONS MANAGER v1.0</div>
+            <div>[Sovereign Appliance Terminal Platform Engine] // [Universal Unified Framework Layout]</div>
+        </div>
+        <div class="theme-control-container">
+            <span class="theme-selector-label">CONSOLE_SKIN:</span>
+            <select class="theme-dropdown" id="globalThemeSelector" onchange="applySystemTheme(this.value)">
+                <option value="scifi"> SCI-FI RETRO (WEYLAND-YUTANI GREEN)</option>
+                <option value="cisco"> CISCO BLUE (IOS-XE APPLIANCE DARK)</option>
+                <option value="dell"> DELL BLACK (DATACENTER OBSIDIAN)</option>
+                <option value="amber"> AMBER MAINFRAME (INDUSTRIAL UNIX VAX)</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="grid-container">
+        
+        <div class="panel col-4">
+            <div class="panel-title">System Topology Targets</div>
+            <div class="spec-row">
+                <span class="spec-label">Environment Routing Mode:</span>
+                <span class="spec-value">Dynamic Auto-Detect</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Database Engine:</span>
+                <span class="spec-value">SQLite Core Index</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Database Path Location:</span>
+                <span class="spec-value">/etc/oscm/oscm.db</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Configuration Protocol:</span>
+                <span class="spec-value">dnsmasq TFTP Native</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Provisioning Port Bound:</span>
+                <span class="spec-value">UDP 69 Secure Root</span>
+            </div>
+        </div>
+
+        <div class="panel col-4">
+            <div class="panel-title">Dual-Engine Parsing Specifications</div>
+            <div class="spec-row">
+                <span class="spec-label">Mode 1 Profile Target:</span>
+                <span class="spec-value">Cisco SmartConfig XML</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Cisco XML Scheme:</span>
+                <span class="spec-value">phone_[mac].xml</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Mode 2 Profile Target:</span>
+                <span class="spec-value">Generic Open SIP Client</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">Open SIP Scheme:</span>
+                <span class="spec-value">spa[mac].xml</span>
+            </div>
+            <div class="spec-row">
+                <span class="spec-label">UI Keypad Lock State:</span>
+                <span class="spec-value">UNLOCKED (User Mode: No)</span>
+            </div>
+        </div>
+
+        <div class="panel col-4">
+            <div class="panel-title">Manual Provision Target Injection</div>
+            <form id="provisionForm">
+                <input type="text" placeholder="MAC ADDRESS (e.g. 000E08A1B2C3)" class="terminal-input" required maxlength="12">
+                <select class="terminal-input" id="engineMode">
+                    <option value="1">Mode 1: Cisco XML Template (tmplt="c0712c7d")</option>
+                    <option value="2">Mode 2: Open SIP Generic Client (Asterisk Registrar)</option>
+                </select>
+                <button type="submit" class="btn">Deploy & Sync Asset Files</button>
+            </form>
+        </div>
+
+        <div class="panel col-12">
+            <div class="panel-title">Asset Deployment Grid (SQLite Engine Index Mirror)</div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MAC Address</th>
+                            <th>Hardware Profile</th>
+                            <th>Target Segment</th>
+                            <th>Provisioning Scheme</th>
+                            <th>Features Matrix Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel col-12">
+            <div class="panel-title">Platform Kernel System Events Log</div>
+            <div class="console-box" id="terminalLogs">
+                <div class="log-entry"><span class="log-time">[INIT]</span> OSCM Server Engine online. Multiple routing loop safeguard confirmed.</div>
+                <div class="log-entry"><span class="log-time">[INIT]</span> dnsmasq executing listening pathways for TFTP transactions.</div>
+                <div class="log-entry"><span class="log-time">[INIT]</span> Core file sync layer verified. Ready for asset indexing.</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const SYSTEM_THEMES = {
+            scifi: `
+                :root {
+                    --neon-green: #39ff14;
+                    --dark-green: #003b00;
+                    --terminal-bg: #050b05;
+                    --panel-bg: #0a140a;
+                    --border-glow: 0 0 10px rgba(57, 255, 20, 0.4);
+                    --text-glow: 0 0 5px rgba(57, 255, 20, 0.7);
+                }
+            `,
+            cisco: `
+                :root {
+                    --neon-green: #00bceb;
+                    --dark-green: #0d233a;
+                    --terminal-bg: #06101e;
+                    --panel-bg: #0b1a2f;
+                    --border-glow: 0 0 10px rgba(0, 188, 235, 0.35);
+                    --text-glow: 0 0 5px rgba(0, 188, 235, 0.5);
+                }
+            `,
+            dell: `
+                :root {
+                    --neon-green: #007db8;
+                    --dark-green: #1a1a1a;
+                    --terminal-bg: #050505;
+                    --panel-bg: #0f0f0f;
+                    --border-glow: 0 0 8px rgba(0, 125, 184, 0.3);
+                    --text-glow: 0 0 2px rgba(0, 125, 184, 0.2);
+                }
+            `,
+            amber: `
+                :root {
+                    --neon-green: #ffb000;
+                    --dark-green: #402000;
+                    --terminal-bg: #0a0601;
+                    --panel-bg: #140d02;
+                    --border-glow: 0 0 10px rgba(255, 176, 0, 0.4);
+                    --text-glow: 0 0 5px rgba(255, 176, 0, 0.6);
+                }
+            `
+        };
+
+        function applySystemTheme(themeKey) {
+            const themeBlock = document.getElementById('theme-variable-block');
+            if (SYSTEM_THEMES[themeKey]) {
+                themeBlock.innerHTML = SYSTEM_THEMES[themeKey];
+                writeToTerminal("System visual profile changed to: [" + themeKey.toUpperCase() + " ENGINE CONSOLE]");
+            }
+        }
+
+        function writeToTerminal(message, type = "LOG") {
+            const consoleBox = document.getElementById('terminalLogs');
+            const now = new Date();
+            const timeStr = "[" + now.toTimeString().split(' ')[0] + "]";
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = '<span class="log-time">' + timeStr + '</span> <span style="color: ' + (type === 'ERROR' ? '#ff3333' : 'var(--neon-green)') + '">[' + type + '] ' + message + '</span>';
+            consoleBox.appendChild(entry);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        async function loadDeviceGrid() {
+            try {
+                const response = await fetch('/api/devices');
+                if (!response.ok) throw new Error("Failed to fetch target assets");
+                
+                const devices = await response.json();
+                const tbody = document.querySelector('table tbody');
+                tbody.innerHTML = ''; 
+
+                if (devices.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--neon-green); opacity: 0.5;">-- NO ACTIVE HARDWARE ASSETS INDEXED IN SQLITE VAULT --</td></tr>';
+                    return;
+                }
+
+                devices.forEach(device => {
+                    const tr = document.createElement('tr');
+                    const cleanMac = device.mac.replace(/[^a-fA-F0-9]/g, '').toLowerCase();
+                    const configSchema = device.mode === "1" ? "phone_" + cleanMac + ".xml" : "spa" + cleanMac + ".xml";
+                    const segmentText = device.mode === "1" ? "VLAN 100 (10.1.1.1)" : "VLAN 1 (Srv Loop)";
+
+                    tr.innerHTML = '<td>' + device.mac.toUpperCase() + '</td><td>' + device.model.toUpperCase() + '</td><td>' + segmentText + '</td><td><span class="status-pill">' + configSchema + '</span></td><td>Ext ' + device.extension + ' • Provision Mode ' + device.mode + ' Active</td>';
+                    tbody.appendChild(tr);
+                });
+                writeToTerminal("Asset deployment grid successfully synchronized with SQLite.");
+            } catch (err) {
+                writeToTerminal("Grid Sync Failure: " + err.message, "ERROR");
+            }
+        }
+
+        document.getElementById('provisionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const macInput = e.target.querySelector('input[type="text"]').value;
+            const modeSelect = document.getElementById('engineMode').value;
+            
+            const extensionPrompt = prompt("Enter Target Extension Number for this asset (e.g. 101):");
+            if (!extensionPrompt) return;
+            
+            const modelPrompt = prompt("Enter Exact Device Model (e.g. SPA525G2, SPA3102):");
+            if (!modelPrompt) return;
+
+            writeToTerminal("Initiating deployment matrix handshake for MAC " + macInput.toUpperCase() + "...");
+
+            try {
+                const response = await fetch('/api/provision', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mac: macInput,
+                        extension: extensionPrompt,
+                        model: modelPrompt,
+                        mode: modeSelect
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    writeToTerminal("Success: " + result.message);
+                    e.target.reset();
+                    loadDeviceGrid(); 
+                } else {
+                    throw new Error(result.message || "Compilation failed.");
+                }
+            } catch (err) {
+                writeToTerminal("Deployment Fault: " + err.message, "ERROR");
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDeviceGrid();
+            setInterval(loadDeviceGrid, 15000);
+        });
+    </script>
+</body>
+</html>

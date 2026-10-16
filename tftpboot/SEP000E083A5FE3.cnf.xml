@@ -1,0 +1,18 @@
+<flat-profile>
+  <!-- Line 1 Active Registration Variables -->
+  <Line_Enable_1_>Yes</Line_Enable_1_>
+  <Extension_1_>1</Extension_1_>
+  <Proxy_1_>10.1.0.40</Proxy_1_>
+  <Register_1_>Yes</Register_1_>
+  <Register_Expires_1_>180</Register_Expires_1_>
+  <Display_Name_1_>Ext 101</Display_Name_1_>
+  <User_ID_1_>101</User_ID_1_>
+  <Password_1_>oscm_secure_local_pass</Password_1_>
+  <Dial_Plan_1_>([2-9]xx|[1-8]xxx|0)</Dial_Plan_1_>
+  
+  <!-- Hardened Regional Voice Cadences (Restores Physical Dial Tone) -->
+  <Dial_Tone_>350@-19,440@-19;c</Dial_Tone_>
+  
+  <!-- System Visual Name String -->
+  <Station_Name>SPA962_101</Station_Name>
+</flat-profile>

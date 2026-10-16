@@ -1,0 +1,8 @@
+[Service]
+Type=simple
+User=oscm
+Group=oscm
+# Paste this line directly under Group=oscm:
+ExecStartPre=/usr/bin/bash -c '/usr/bin/id -u oscm &>/dev/null || /usr/sbin/useradd -r -m -d /var/www/oscm -s /usr/sbin/nologin oscm'
+WorkingDirectory=/var/www/oscm
+ExecStart=/usr/bin/python3 /var/www/oscm/apps/app.py

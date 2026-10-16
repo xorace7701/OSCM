@@ -1,22 +1,17 @@
 #!/usr/bin/env bash
 # ====================================================================
 #          OSCM — Open Systems Communications Manager
-#              Master Modular System Installer v1.0
+#              Master Modular System Installer v1.1
 # ====================================================================
-# Description: Clean orchestrator that provisions system environments,
-#              seeds the database, deploys external modular files, and
-#              injects a live kernel telemetry splash screen.
-# Usage:       sudo ./oscm_compiler.sh
-
 set -e
 
-# Target System Directory Mappings
+# Production System Mount Targets
 OSCM_DIR="/etc/oscm"
 DB_PATH="${OSCM_DIR}/oscm.db"
 TFTP_ROOT="/var/ftpd"
 NGINX_PROV_ROOT="/var/www/oscm"
 
-# Terminal Formatting Anchors
+# Unified Terminal ANSI Colors
 BLUE="\033[1;36m"
 GREEN="\033[1;32m"
 YELLOW="\033[1;33m"
@@ -27,7 +22,7 @@ echo -e "${BLUE}================================================================
 echo -e "${BLUE}       OSCM — MASTER MODULAR SYSTEM INITIALIZER ENGINE              ${RESET}"
 echo -e "${BLUE}====================================================================${RESET}"
 
-# Ensure installer is running with administrative system privileges
+# Strict Administrative Privilege Escalation Enforcement Guard
 if [ "$EUID" -ne 0 ]; then
     echo -e "${RED}❌ SYSTEM FAULT: This compiler layer must be run as root (sudo).${RESET}"
     exit 1
@@ -40,6 +35,7 @@ echo -e "\n${YELLOW}[STAGE 1] Syncing system packages and launching daemons...${
 DEPENDENCIES=(
     "systemd" "asterisk" "nginx" "tftp-hpa" "vsftpd" "dnsmasq" 
     "openlldp" "chrony" "iptables" "sqlite3" "python3" "curl"
+    "ifupdown" "vlan"
 )
 apt-get update -y
 for pkg in "${DEPENDENCIES[@]}"; do
@@ -57,11 +53,11 @@ done
 echo -e "\n${YELLOW}[STAGE 2] Building file system node hierarchies...${RESET}"
 mkdir -p "$OSCM_DIR"
 mkdir -p "$TFTP_ROOT"
-mkdir -p "${NGINX_PROV_ROOT}/provision/directory"
-mkdir -p "${NGINX_PROV_ROOT}/provision/audio"
-mkdir -p "${NGINX_PROV_ROOT}/provision/incoming/tmp"
-mkdir -p "${NGINX_PROV_ROOT}/dashboard/static"
-mkdir -p "${NGINX_PROV_ROOT}/dashboard/backups"
+mkdir -p "${NGINX_PROV_ROOT}/apps"
+mkdir -p "${NGINX_PROV_ROOT}/ui/templates"
+mkdir -p "${NGINX_PROV_ROOT}/tftpboot/phone_assets"
+mkdir -p "${NGINX_PROV_ROOT}/tftpboot/switch_assets"
+mkdir -p "${NGINX_PROV_ROOT}/tftpboot/backup_repo"
 
 chmod 755 "$TFTP_ROOT"
 chown -R www-data:www-data "$NGINX_PROV_ROOT"
@@ -127,21 +123,40 @@ echo -e "   [+] ${GREEN}Database structuralized successfully with active WAL iso
 # --------------------------------------------------------------------
 echo -e "\n${YELLOW}[STAGE 4] Injecting modular application files into core paths...${RESET}"
 
-if [ -f "./scripts/oscm_generator.py" ]; then
-    cp ./scripts/oscm_generator.py "${OSCM_DIR}/oscm_generator.py"
-    chmod +x "${OSCM_DIR}/oscm_generator.py"
-    echo -e "   [+] Deployed: ${GREEN}oscm_generator.py${RESET} -> ${OSCM_DIR}"
+# INTEGRATED INTERACTIVE IFUPDOWN NETWORKING CONVERSION TERMINAL LAYER
+if [ -f "./config/interfaces.conf" ]; then
+    cp ./config/interfaces.conf "${OSCM_DIR}/interfaces_selector.sh"
+    chmod +x "${OSCM_DIR}/interfaces_selector.sh"
+    echo -e "   [+] Deployed script engine: ${GREEN}interfaces.conf${RESET} -> ${OSCM_DIR}"
+    
+    # Run the interactive network interface prompt immediately for the engineer
+    bash "${OSCM_DIR}/interfaces_selector.sh"
 else
-    echo -e "   ${RED}[!] Skipping oscm_generator.py: Module file not found in local staging folder.${RESET}"
+    echo -e "   ${RED}[!] Skipping network interface setup: Module script not found in local staging folder.${RESET}"
 fi
 
+# Deploy the Python configuration parser script straight to the web root level from scripts folder
+if [ -f "./scripts/oscm_generator.py" ]; then
+    cp ./scripts/oscm_generator.py "${NGINX_PROV_ROOT}/oscm_generator.py"
+    chmod +x "${NGINX_PROV_ROOT}/oscm_generator.py"
+    echo -e "   [+] Deployed: ${GREEN}oscm_generator.py${RESET} -> ${NGINX_PROV_ROOT}"
+else
+    echo -e "   ${RED}[!] Skipping oscm_generator.py: Module file not found in local scripts staging folder.${RESET}"
+fi
+
+# Deploy the repository safety backup vault script directly into the tracking directory
 if [ -f "./scripts/oscm_backup_repo.sh" ]; then
     cp ./scripts/oscm_backup_repo.sh "${OSCM_DIR}/oscm_backup_repo.sh"
     chmod +x "${OSCM_DIR}/oscm_backup_repo.sh"
     echo -e "   [+] Deployed: ${GREEN}oscm_backup_repo.sh${RESET} -> ${OSCM_DIR}"
 else
-    echo -e "   ${RED}[!] Skipping oscm_backup_repo.sh: Module file not found in local staging folder.${RESET}"
+    echo -e "   ${RED}[!] Skipping oscm_backup_repo.sh: Module file not found in local scripts staging folder.${RESET}"
 fi
+
+# Sweep application logic blocks and frontend layouts into place safely
+echo -e "   [+] Copying application engine components and front-end blueprints..."
+cp ./apps/* "${NGINX_PROV_ROOT}/apps/" || true
+cp ./ui/templates/* "${NGINX_PROV_ROOT}/ui/templates/" || true
 
 if [ -f "./config/dnsmasq.conf" ]; then
     cp ./config/dnsmasq.conf /etc/dnsmasq.conf
@@ -166,6 +181,13 @@ else
     echo -e "   ${RED}[!] Skipping pjsip.conf: Module file not found in local staging folder.${RESET}"
 fi
 
+if [ -f "./config/oscm-web.service" ]; then
+    cp ./config/oscm-web.service /etc/systemd/system/oscm-web.service
+    echo -e "   [+] Deployed: ${GREEN}oscm-web.service${RESET} -> /etc/systemd/system"
+else
+    echo -e "   ${RED}[!] Skipping oscm-web.service: Unit layout file missing."
+fi
+
 # --------------------------------------------------------------------
 # STAGE 5: DYNAMIC TERMINAL & SSH LOGIN SPLASH SCREEN ENFORCEMENT
 # --------------------------------------------------------------------
@@ -182,7 +204,6 @@ cat << 'EOF' > /etc/profile.d/oscm_splash.sh
 if [ -n "$BASH_VERSION" ] && [ "$2" != "noninteractive" ]; then
     SYSTEM_TIME=$(date +"%Y-%m-%d %H:%M:%S %Z")
     VLAN1_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' || echo "UNASSIGNED")
-    VLAN100_IP=$(ip -4 addr show eth0.100 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' || echo "DOWN/DISCONNECTED")
     AST_STATUS=$(systemctl is-active asterisk 2>/dev/null || echo "inactive")
     DNS_STATUS=$(systemctl is-active dnsmasq 2>/dev/null || echo "inactive")
 
@@ -193,16 +214,11 @@ if [ -n "$BASH_VERSION" ] && [ "$2" != "noninteractive" ]; then
     echo -e "${BLUE}                  Sovereign Network Framework v1.0                  ${RESET}"
     echo -e "${BLUE}====================================================================${RESET}"
     echo -e " [ Temporal Anchor ]  ${YELLOW}${SYSTEM_TIME}${RESET}"
-    echo -e " [ Management Network] Interface: ${BLUE}eth0${RESET}       IP: ${GREEN}${VLAN1_IP}${RESET} (VLAN 1)"
-    echo -e " [ Telephony Subnet  ] Interface: ${BLUE}eth0.100${RESET}   IP: ${GREEN}${VLAN100_IP}${RESET} (VLAN 100)"
+    echo -e " [ System Core IP  ]  Primary Host IP: ${GREEN}${VLAN1_IP}${RESET}"
     echo -e " --------------------------------------------------------------------"
     echo -e " [ Core VoIP Engine  ] Asterisk Status:  [ ${GREEN}${AST_STATUS}${RESET} ]"
     echo -e " [ Bootstrap Engine  ] Dnsmasq ZTP Port: [ ${GREEN}${DNS_STATUS}${RESET} ]"
     echo -e "${BLUE}====================================================================${RESET}"
-    echo -e " Notice: This communication appliance platform runs strictly on"
-    echo -e " native open industry standard network protocols (SIP, DHCP, HTTP,"
-    echo -e " TFTP, LLDP-MED). Outbound external data pipelines are firewalled."
-    echo -e "${BLUE}====================================================================${RESET}\n"
 fi
 EOF
 
@@ -214,6 +230,8 @@ echo -e "   [+] ${GREEN}Dynamic shell telemetry login splash screen deployed to 
 # --------------------------------------------------------------------
 echo -e "\n${YELLOW}[STAGE 6] Activating infrastructure managers...${RESET}"
 systemctl daemon-reload
+systemctl enable oscm-web.service || true
+systemctl restart oscm-web.service || true
 systemctl restart dnsmasq || true
 systemctl restart nginx || true
 systemctl restart asterisk || true
