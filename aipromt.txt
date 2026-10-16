@@ -1,0 +1,32 @@
+🚀 PROJECT SYSTEM TRANSFER LOG: OPTIMIZED FOR MODULAR DEVELOPMENT
+Project: OSCM — Open Systems Communications Manager (v1.0)
+Target: Open-source local appliance engine for network sustainability and EOL endpoint reuse.
+
+1. CURRENT STATUS & RECENT ACHIEVEMENTS:
+• We have officially DECOUPLED the platform into a self-contained, modular build structure to preserve browser tab memory and prevent text-flooding over the web interface.
+• The Master System Installer Core (oscm_compiler.sh) is completely completed and locked down. It handles all apt package pulls (12 dependencies), directory tree prep under /var/www/oscm/ and /var/ftpd/, sets up custom terminal/SSH login banners, and orchestrates staging folders.
+• The exact SQLite3 production database (oscm.db) schema has been built, tested, and fully seeded directly inside the orchestrator using a 4-table structure (assets, directory, hardware_keys, peripheral_media) with Write-Ahead Logging (WAL) and strict CHECK/UNIQUE keys enabled.
+
+2. ACTIVE PROJECT STRUCTURAL BOUNDS:
+The workspace directory blueprint on our development host is structured exactly as follows:
+oscm-installer/              # Created on Local Desktop
+├── oscm_compiler.sh         # Master Orchestrator [LOCKED & COMPLETED]
+├── config/
+│   ├── dnsmasq.conf         # ZTP Network Scopes [PENDING]
+│   ├── nginx-oscm.conf      # Split Multi-VLAN Web Infrastructure [PENDING]
+│   └── pjsip.conf           # Asterisk Endpoint Cores [PENDING]
+└── scripts/
+    ├── oscm_generator.py    # Python Database Parsing Engine [PENDING]
+    └── oscm_backup_repo.sh  # Text-Append Safety Backup Vault [PENDING]
+
+3. CORE RULES FOR THE CONTINUATION ENGINE:
+• Do NOT rewrite, repeat, or inline the logic of 'oscm_compiler.sh' or the 'oscm.db' schema. The wheel has already been built. Treat them as permanent, locked infrastructure foundations.
+• Focus strictly on a SINGLE file at a time from the [PENDING] list above. Keep responses clean, concise, and focused on building that specific module to preserve active session bounds.
+
+4. NEXT LOGICAL STEP / SPECIFIC TARGET INTERFACE:
+Please immediately generate the production-ready contents for the first pending module:
+👉 TARGET FILE: config/dnsmasq.conf
+
+Requirements for this module: Establish the Zero-Touch Provisioning (ZTP) pipeline by creating an isolated dual-interface setup. Bind a standard DHCP pool to Management LAN (VLAN 1) and a dedicated staging pool on Voice VLAN 100 serving standard Option 66 HTTP strings and Option 150 Cisco boot paths. End the config by passing dynamic allocations to our custom event hook trigger script (dhcp-script=/etc/oscm/oscm_generator.py).
+
+Awaiting code block output for 'config/dnsmasq.conf' only.

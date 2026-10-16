@@ -1,0 +1,10 @@
+# OSCM Git Exclusions
+*.db
+*.db-wal
+*.db-shm
+*.sql
+config/*.bak
+scripts/*.tmp
+.idea/
+.vscode/
+.DS_Store
