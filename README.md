@@ -52,6 +52,7 @@ To maintain a lean footprint without duplicating proven architectures, OSCM coor
 5. Zero-Touch Provisioning (ZTP) Subnet Delivery
 
 • Dynamic Network Option Routing Engine (dnsmasq.conf): Integrates the automated LLDP/CDP discovery metrics directly with a network configuration server. The engine automatically maps custom DHCP lease option strings (such as Option 66 for standard TFTP/HTTP boot paths used by SPA lines, and Option 150 for specialized unified boot paths used by enterprise lines) to instantly inject targeted configuration files over isolated staging networks.
+• Automated Event-Driven Lease Trigger (dhcp-script): Binds local network allocations directly to the compiler framework. By utilizing the native dhcp-script hook inside the dnsmasq core engine, the second an endpoint receives or renews an IP lease, dnsmasq fires an execution trigger that launches oscm_generator.py. This instantly registers the device properties and processes the profile matrix without lag or manual tracking loops.
 • Automated Symlink Intercept Layer: The Python compiler automatically generates a multi-format symlink matrix pointing directly back to a master configuration sheet. This ensures that out-of-the-box hardware seamlessly pairs with its profile regardless of factory-default firmware assumptions.
 
 6. Hardened System Automation, Storage, & Compliance Blueprint
