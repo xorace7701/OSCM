@@ -40,7 +40,7 @@ echo -e "\n${YELLOW}[STAGE 1] Syncing system packages and launching daemons...${
 DEPENDENCIES=(
     "systemd" "asterisk" "nginx" "tftp-hpa" "vsftpd" "dnsmasq" 
     "openlldp" "chrony" "iptables" "sqlite3" "python3" "curl"
-    "ifupdown" "vlan"
+    "ifupdown" "vlan" "python3-pip" "python3-flask"
 )
 apt-get update -y
 for pkg in "${DEPENDENCIES[@]}"; do
@@ -51,6 +51,7 @@ for pkg in "${DEPENDENCIES[@]}"; do
         apt-get install -y "$pkg"
     fi
 done
+
 
 # --------------------------------------------------------------------
 # STAGE 2: BUILD STRUCTURED DEVICE FILESYSTEM HIERARCHY
