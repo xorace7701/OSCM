@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 # ====================================================================
 #          OSCM — Open Systems Communications Manager
-#              Master Modular System Installer v1.1
+#              Master Modular System Installer v1.2
 # ====================================================================
+# Description: Lean master orchestrator that provisions directories,
+#              compiles database containers via external modular layers,
+#              and deploys decoupled configuration templates.
+# Usage:       sudo ./oscm_compiler.sh
+
 set -e
 
 # Production System Mount Targets
@@ -67,57 +72,28 @@ chmod -R 755 "$NGINX_PROV_ROOT"
 # STAGE 3: INITIALIZE STORAGE CONTAINER WITH PRODUCTION SCHEMA
 # --------------------------------------------------------------------
 echo -e "\n${YELLOW}[STAGE 3] Building database and forcing WAL safety controls...${RESET}"
-sqlite3 "$DB_PATH" <<EOF
-PRAGMA journal_mode=WAL;
-PRAGMA synchronous=NORMAL;
-PRAGMA foreign_keys = ON;
 
--- 1. ASSET CONTROL MATRIX
-CREATE TABLE IF NOT EXISTS assets (
-    mac_address TEXT PRIMARY KEY CHECK(length(mac_address) = 12),
-    hardware_model TEXT NOT NULL,
-    vlan_id INTEGER NOT NULL CHECK(vlan_id IN (1, 2, 100)),
-    engine_mode INTEGER NOT NULL CHECK(engine_mode IN (1, 2)), 
-    assigned_extension TEXT UNIQUE,
-    developer_mode_unlocked INTEGER DEFAULT 1 CHECK(developer_mode_unlocked IN (0, 1)),
-    last_sync_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-);
+# 1. Instantiate the database container and enable safe high-speed journaling
+sqlite3 "$DB_PATH" "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA foreign_keys = ON;"
 
--- 2. UNIFIED XML PHONEBOOK DIRECTORY
-CREATE TABLE IF NOT EXISTS directory (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    contact_name TEXT NOT NULL,
-    extension_number TEXT NOT NULL UNIQUE,
-    display_group TEXT DEFAULT 'OSCM Internal'
-);
+# 2. Compile structural layouts using your offloaded apps/schema.sql matrix
+if [ -f "./apps/schema.sql" ]; then
+    sqlite3 "$DB_PATH" < "./apps/schema.sql"
+    echo -e "   [+] Applied: ${GREEN}schema.sql${RESET} -> Relational container schema active."
+else
+    echo -e "   ${RED}[!] CRITICAL ERROR: ./apps/schema.sql missing. Cannot compile database.${RESET}"
+    exit 1
+fi
 
--- 3. SIDECAR & HARDWARE KEY MAPPING
-CREATE TABLE IF NOT EXISTS hardware_keys (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    mac_address TEXT NOT NULL,
-    key_number INTEGER NOT NULL CHECK(key_number > 0),
-    function_string TEXT NOT NULL,
-    FOREIGN KEY(mac_address) REFERENCES assets(mac_address) ON DELETE CASCADE,
-    UNIQUE(mac_address, key_number)
-);
+# 3. Seed validation endpoint lines out of your offloaded apps/seed.sql matrix
+if [ -f "./apps/seed.sql" ]; then
+    sqlite3 "$DB_PATH" < "./apps/seed.sql"
+    echo -e "   [+] Applied: ${GREEN}seed.sql${RESET} -> Default extensions seeded."
+else
+    echo -e "   ${RED}[!] WARNING: ./apps/seed.sql missing. Skipping system database seeding.${RESET}"
+fi
 
--- 4. MEDIA & CUSTOMIZATION REGISTRY
-CREATE TABLE IF NOT EXISTS peripheral_media (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    mac_address TEXT NOT NULL,
-    wallpaper_filename TEXT DEFAULT 'default.png',
-    ringtone_filename TEXT DEFAULT 'ringlist.xml',
-    camera_stream_url TEXT DEFAULT NULL,
-    FOREIGN KEY(mac_address) REFERENCES assets(mac_address) ON DELETE CASCADE
-);
-
--- SEED DATA: Populate standard network endpoints for initial validation
-INSERT OR IGNORE INTO directory (contact_name, extension_number) VALUES 
-('OSCM Provisioner Server', '100'),
-('VLAN 100 Gateway App', '900'),
-('Multicast Intercom Group', '800');
-EOF
-echo -e "   [+] ${GREEN}Database structuralized successfully with active WAL isolation flags.${RESET}"
+echo -e "   [+] ${GREEN}Database structuralized successfully via modular app layers.${RESET}"
 # --------------------------------------------------------------------
 # STAGE 4: DEPLOY EXTERNAL MODULAR COMPONENT ASSETS
 # --------------------------------------------------------------------
@@ -133,6 +109,18 @@ if [ -f "./config/interfaces.conf" ]; then
     bash "${OSCM_DIR}/interfaces_selector.sh"
 else
     echo -e "   ${RED}[!] Skipping network interface setup: Module script not found in local staging folder.${RESET}"
+fi
+
+# Deploy the standalone Access Control List (ACL) and Firewall script layer
+if [ -f "./config/firewall.conf" ]; then
+    cp ./config/firewall.conf "${OSCM_DIR}/firewall_rules.sh"
+    chmod +x "${OSCM_DIR}/firewall_rules.sh"
+    echo -e "   [+] Deployed: ${GREEN}firewall.conf${RESET} -> ${OSCM_DIR}"
+    
+    # Execute the modular firewall script instantly to open and lock your system ports
+    bash "${OSCM_DIR}/firewall_rules.sh"
+else
+    echo -e "   ${RED}[!] Skipping firewall lockdown: Module script missing in staging folder.${RESET}"
 fi
 
 # Deploy the Python configuration parser script straight to the web root level from scripts folder
@@ -193,37 +181,18 @@ fi
 # --------------------------------------------------------------------
 echo -e "\n${YELLOW}[STAGE 5] Overwriting terminal identity warning structures...${RESET}"
 
-# Clear static legacy text buffers to allow profile shell traps to handle display
+# Clear static text buffers to allow profile shell traps to handle display
 > /etc/motd
 > /etc/issue.net
 
-# Drop dynamic shell telemetry hook directly into global bash profile initializations
-cat << 'EOF' > /etc/profile.d/oscm_splash.sh
-#!/usr/bin/env bash
-# OSCM Dynamic Telemetry Terminal Splash Engine
-if [ -n "$BASH_VERSION" ] && [ "$2" != "noninteractive" ]; then
-    SYSTEM_TIME=$(date +"%Y-%m-%d %H:%M:%S %Z")
-    VLAN1_IP=$(ip -4 addr show eth0 2>/dev/null | grep -oP '(?<=inet\s)\d+(\.\d+){3}' || echo "UNASSIGNED")
-    AST_STATUS=$(systemctl is-active asterisk 2>/dev/null || echo "inactive")
-    DNS_STATUS=$(systemctl is-active dnsmasq 2>/dev/null || echo "inactive")
-
-    BLUE="\033[1;36m"; GREEN="\033[1;32m"; YELLOW="\033[1;33m"; RESET="\033[0m"
-    clear
-    echo -e "${BLUE}====================================================================${RESET}"
-    echo -e "${BLUE}           OSCM — Open Systems Communications Manager               ${RESET}"
-    echo -e "${BLUE}                  Sovereign Network Framework v1.0                  ${RESET}"
-    echo -e "${BLUE}====================================================================${RESET}"
-    echo -e " [ Temporal Anchor ]  ${YELLOW}${SYSTEM_TIME}${RESET}"
-    echo -e " [ System Core IP  ]  Primary Host IP: ${GREEN}${VLAN1_IP}${RESET}"
-    echo -e " --------------------------------------------------------------------"
-    echo -e " [ Core VoIP Engine  ] Asterisk Status:  [ ${GREEN}${AST_STATUS}${RESET} ]"
-    echo -e " [ Bootstrap Engine  ] Dnsmasq ZTP Port: [ ${GREEN}${DNS_STATUS}${RESET} ]"
-    echo -e "${BLUE}====================================================================${RESET}"
+# Drop your offloaded script engine straight into global bash profile initializations
+if [ -f "./scripts/oscm_splash.sh" ]; then
+    cp ./scripts/oscm_splash.sh /etc/profile.d/oscm_splash.sh
+    chmod 755 /etc/profile.d/oscm_splash.sh
+    echo -e "   [+] ${GREEN}Dynamic shell telemetry login splash screen deployed to host profiles.${RESET}"
+else
+    echo -e "   ${RED}[!] Skipping splash setup: Module script missing in scripts folder.${RESET}"
 fi
-EOF
-
-chmod 755 /etc/profile.d/oscm_splash.sh
-echo -e "   [+] ${GREEN}Dynamic shell telemetry login splash screen deployed to host profiles.${RESET}"
 
 # --------------------------------------------------------------------
 # STAGE 6: RELAUNCH MODULAR SYSTEM DAEMONS
