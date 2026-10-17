@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
 # ====================================================================
 #          OSCM — Open Systems Communications Manager
-#              Master Modular System Installer v1.2
+#              Master Modular System Installer v1.3
 # ====================================================================
-# Description: Lean master orchestrator that provisions directories,
-#              compiles database containers via external modular layers,
-#              and deploys decoupled configuration templates.
-# Usage:       sudo ./oscm_compiler.sh
-
 set -e
 
 # Production System Mount Targets
@@ -34,13 +29,48 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # --------------------------------------------------------------------
+# CONNECTION SAFETY CHECK: GUARD AGAINST REMOTE LINK DROP DISCONNECTIONS
+# --------------------------------------------------------------------
+# Auto-provision screen immediately if it is completely missing from the host filesystem
+if ! command -v screen &>/dev/null; then
+    echo -e "${YELLOW}[+] Missing background terminal utilities. Bootstrapping 'screen' via apt...${RESET}"
+    apt-get update -y && apt-get install -y screen
+fi
+
+# Detect if the engineer is connected via a remote network socket (SSH)
+if [ -n "$SSH_CLIENT" ] || [ -n "$SSH_TTY" ]; then
+    # If using SSH, verify if the script is currently running inside an isolated background session
+    if [ -z "$STY" ] && [ -z "$TMUX" ]; then
+        echo -e "${RED}====================================================================${RESET}"
+        echo -e "${RED}⚠️  CRITICAL INFRASTRUCTURE WARNING: REMOTE NETWORK SESSION DETECTED ${RESET}"
+        echo -e "${RED}====================================================================${RESET}"
+        echo -e " This installer will strip Netplan and bounce your physical network links."
+        echo -e " If you run this inside a standard SSH session, you will be disconnected"
+        echo -e " instantly, leaving your communication appliance half-installed and broken."
+        echo -e ""
+        echo -e " ${YELLOW}SAFETY BOUNDARY REQUIREMENT:${RESET}"
+        echo -e " Launch this installer script inside your protected screen shell:"
+        echo -e "   ${BLUE}screen -S oscm-install${RESET}"
+        echo -e "   ${BLUE}sudo ./oscm_compiler.sh${RESET}"
+        echo -e ""
+        echo -e " If your network drops inside 'screen', the local CPU will finish the install"
+        echo -e " completely in the background. You can reconnect safely once the ports are up."
+        echo -e "${RED}====================================================================${RESET}\n"
+        exit 1
+    fi
+    echo -e "   [+] ${GREEN}Protected background socket session active${RESET} (screen/tmux validated)."
+else
+    echo -e "   [+] ${GREEN}Local physical terminal (TTY/Console) connection verified.${RESET}"
+fi
+
+# --------------------------------------------------------------------
 # STAGE 1: SYSTEM DEPENDENCY DEPLOYMENT MATRIX
 # --------------------------------------------------------------------
 echo -e "\n${YELLOW}[STAGE 1] Syncing system packages and launching daemons...${RESET}"
 DEPENDENCIES=(
     "systemd" "asterisk" "nginx" "tftp-hpa" "vsftpd" "dnsmasq" 
     "openlldp" "chrony" "iptables" "sqlite3" "python3" "curl"
-    "ifupdown" "vlan" "python3-pip" "python3-flask"
+    "ifupdown" "vlan" "python3-pip" "python3-flask" "screen"
 )
 apt-get update -y
 for pkg in "${DEPENDENCIES[@]}"; do
@@ -51,7 +81,6 @@ for pkg in "${DEPENDENCIES[@]}"; do
         apt-get install -y "$pkg"
     fi
 done
-
 
 # --------------------------------------------------------------------
 # STAGE 2: BUILD STRUCTURED DEVICE FILESYSTEM HIERARCHY
