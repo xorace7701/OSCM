@@ -1,0 +1,40 @@
+
+📑 Technical Hand-Off Blueprint for Session Continuation
+
+To the Next AI Assistant:
+The user is paused at a critical juncture of an enterprise-grade Multi-VLAN VoIP appliance migration (OSCM Server Engine). Do not start over, guess configuration details, or offer generic patches. Read this entire block to preserve continuity.
+
+🌐 1. Verified Infrastructure State Matrix
+
+• Operating System/Hardware: Ubuntu minimal server container environment deployed natively on a physical Dell Optiplex appliance workstation node.
+• Network Hardware Core: Interfaced directly via a high-speed 10G physical trunk network link (eth3) linked up to a Dell X1052P Managed Switch matrix.
+• The Switch Topology: Configured explicitly on Ports 5–8 and Port 51 under General Mode. PVID=1 (Native Untagged VLAN 1) to pass client PCs out to the home router gateway safely. Voice VLAN 100 is set to Tagged, opening a direct path to the voice infrastructure server stack.
+• DHCP/TFTP Control Plane (dnsmasq): Fully operational, verified, and listening authoritatively. The server successfully intercepts broadcasts on the raw device wire (eth3) and issues a clean lease handoff (DHCPACK(eth3) 10.100.0.144 00:0e:08:3a:5f:e3 ext1001).
+• Data Tier Engine (SQLite): Pristine status. Located at /etc/oscm/oscm.db. Tables (assets, directory, hardware_keys) are compiled and query-ready. A sample device row with MAC 547c694997c4 on Ext 1001 is actively populated.
+• Application Backend Framework (Flask): The engine runs perfectly at http://127.0.0.1:5000 under oscm-web.service. Query tests verify it successfully pulls SQL data lines and outputs a clean JSON payload: [{"display_name":"Ext 1001","extension":"1001","mac":"547c694997c4","mode":1,"model":"Cisco SPA525G2"}].
+
+🛑 2. Active Diagnostic Hurdle: The Front-End Sync Deadlock
+
+The user's green reactive HTML terminal interface dashboard (http://192.168.1) is currently printing out:
+[ERROR] Grid Sync Failure: Failed to fetch target assets
+• The Root Cause: The Nginx access records show that whenever the browser triggers an internal fetch('/api/devices') loop, Nginx throws back a 500 Internal Server Error.
+• The Culprit: The Nginx process loop is trapped in an infinite recursive upstream redirection cycle. The error logs reveal that Nginx is parsing an unauthorized, persistent rule caching loop: upstream: "http://127.0.0".
+• The Disconnection: Even though we cleanly overwrote /etc/nginx/sites-enabled/oscm.conf to target the active Flask socket on port 5000, Nginx is picking up the legacy loop configuration from a secondary hidden virtual host template wrapper nested within /etc/nginx/nginx.conf or a root template block skipped during compilation by the user's master script setup loop (oscm_compiler.sh).
+
+📂 3. Exact File Paths Modified and Active in the Session
+
+Keep your work limited strictly to this target file group. Do not modify directories outside this tree:
+1. Frontend Layout Matrix View: /var/www/oscm/ui/templates/index.html (Contains the JS fetch check rules)
+2. Backend Application Core Logic: /var/www/oscm/apps/app.py (Contains the strict slashes routing logic)
+3. Active Active Proxy Configurations: /etc/nginx/sites-enabled/oscm.conf (Contains the upstream rules)
+4. Core Subsystem Infrastructure Framework: /etc/dnsmasq.conf (Contains the DHCP and Option 66 definitions)
+
+🎯 4. The Action Plan For When the User Returns
+
+When the user reopens this context box window, execute these exact steps in absolute sequence:
+1. Locate the Rogue String Target: Have the user execute a recursive target search to find the file hosting the dead loopback IP:bash
+sudo grep -rn "127.0.0.0" /etc/nginx/
+Use code with caution.
+2. Purge and Clean Route: Erase that dead declaration block or comment it out directly from the base file configuration matrix.
+3. Validate and Unchain Nginx: Run sudo nginx -t && sudo systemctl restart nginx to clear the worker_connections alert trace and let the browser fetch calls hit port 5000 cleanly.
+4. Transition to Hardware: Move straight into tracking the phone's provisioning file requests from the Nginx or TFTP logs to ensure a live dial tone
